@@ -6,10 +6,16 @@ require File.dirname(__FILE__) + '/../spec_helper'
 class TestController < ApplicationController; end
 
 describe TestController, :type => :controller do
+  before :all do
+    ActionController::Routing::Routes.draw do |map|
+      map.connect 'test/:action/:id', :controller => 'test'
+    end
+  end
+
   describe "RBAC enforcement" do
-    before :each do
+    before :all do
       class TestModel < ActiveRecord::Base
-        self.stub!(:columns).and_return([ActiveRecord::ConnectionAdapters::Column.new("column", nil, "string", false)])
+        self.stub!(:columns).and_return([])
         include Rbac::Operation
 
         define_rbac_rule :false, "this rule is always false" do
@@ -20,7 +26,12 @@ describe TestController, :type => :controller do
       stub_rbac_read @top
 
       class TestController
-        def current_user; params[:sudo] ? SuperUser.new : nil; end
+        around_filter :rbac_as
+        def rbac_as
+          Rbac.as(params[:sudo] ? SuperUser.new : nil){yield}
+        rescue Rbac::Operation::AuthorizationError
+          render(:nothing => true, :layout => false, :status => 401)
+        end
       end
     end
     def do_get params={}

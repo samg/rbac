@@ -22,6 +22,13 @@ def stub_rbac_read operation
     and_return([operation.attributes])
 end
 
+# permit be_unauthorized
+module ActionController::TestResponseBehavior
+  def unauthorized?
+    response_code == 401
+  end
+end
+
 describe "a Rbac subject provider", :shared => true do
   describe "with basic roles" do
     before :each do

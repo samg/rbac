@@ -2,9 +2,25 @@ require File.dirname(__FILE__) + '/../spec_helper'
 
 class TestRolesController < ActionController::Base
   rbac_roles_controller :operation_providers => ['providers']
+  around_filter :rbac_as
+  def rbac_as
+    Rbac.as(params[:sudo] ? SuperUser.new : nil){yield}
+  rescue Rbac::Operation::AuthorizationError
+    render(:nothing => true, :layout => false, :status => 401)
+  end
+end
+ActionController::Routing::Routes.draw do |map|
+  map.connect 'test/:action/:id', :controller => 'test_roles'
 end
 
 describe TestRolesController, :type => :controller do
+  before :all do
+    class Role < ActiveRecord::Base
+      stub!(:columns).and_return([])
+      include Rbac::Role
+    end
+  end
+
   it "should have a operations providers attribute" do
     TestRolesController.operation_providers.should == ['providers']
   end
@@ -160,7 +176,7 @@ describe TestRolesController, :type => :controller do
 
       it "should redirect edit" do
         do_put
-        response.should redirect_to(admin_role_url(@role))
+        response.should redirect_to(:action => 'edit')
       end
     end
 

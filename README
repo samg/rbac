@@ -1,13 +1,72 @@
 Rbac
 ====
 
-Introduction goes here.
+This is a simple library for creating and managing an RBAC permissions model in
+Rails.
+
+Setup
+=====
+
+ script/plugin install ssh://slice11.beezwax.net/var/repos/rbac.git
+
+if you want to use the spec helper, you can link or copy it to your spec
+directory.
+
+ cd spec
+ ln -s ../vendor/plugins/rbac/spec/rbac_spec_helper.rb
+ echo "require File.dirname(__FILE__) + '/rbac_spec_helper'" >> spec_helper.rb
+
+Usage
+=====
+
+Rbac works by providing standard interfaces for Subjects, Operations, and
+Roles. Subjects are permitted to perform Operations when their Roles provide
+adequate permissions.
+
+A simple implementation of Rbac might look like this:
+
+ class Group
+   include Rbac::Role
+
+   # Create a basic permission that allows a possessor of this Group to do
+   # anything to ActiveRecord::Base or its descendants.
+   def permissions
+     [Rbac::SimplePermission.new('active_record/base.*.*')]
+   end
+ end
+
+ class MyUser
+   include Rbac::Subject
+
+   # Rbac will hook into #roles, which returns [] by default
+   def roles
+     Group.new
+   end
+ end
+
+ class MyModel < ActiveRecord::Base
+   include Rbac::Operation
+ end
+
+This would behave thusly on the console:
+
+ >>
+
+Permissions
+===========
+
+The only requisite of Group#permissions is that it return an array of objects
+that respond_to?(:identifier) with a permission identifier. The
+Rbac::SimplePermission class is provided to make it easy to specify permissions
+with strings.
+
+Permission identifiers take the form of "<subject>.<operation>.<rule>". A "*"
+in any of the positions will give the holder of the permission rights to any
+possible value of that position. Thus, the permission identifier "*.*.*" grants
+super user rights.
 
 
-Example
-=======
-
-Example goes here.
 
 
-Copyright (c) 2008 [name of plugin creator], released under the MIT license
+--------------------------------------------------------------------------------
+Copyright (c) 2008 Beezwax Datatools, Inc., released under the MIT license
