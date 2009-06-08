@@ -8,6 +8,14 @@ module Rbac
   def self.current_user; @@current_user ||= AnonymousUser.new; end
   def self.current_user= new; @@current_user = new; end
 
+  def self.operation_providers
+    ops = []
+    ::ObjectSpace.each_object(Class) do |klass|
+      ops << klass if klass.ancestors.include?(Rbac::Operation)
+    end
+    ops
+  end
+
   def self.as subject, &block
     old = current_user
     self.current_user = subject
@@ -24,16 +32,4 @@ module Rbac
       thing.send method
     end
   end
-
-  module ActionController
-    #def rbac_roles_controller options = {}
-    #  raise ArgumentError, "You must define an array of operations providers with options[:operation_providers]" unless
-    #    options[:operation_providers]
-
-    #  include Rbac::RolesController
-    #  self.operation_providers = options[:operation_providers]
-    #  self.find_one_with = options[:find_one_with] if options[:find_one_with]
-    #end
-  end
 end
-ActionController::Base.send :extend, Rbac::ActionController

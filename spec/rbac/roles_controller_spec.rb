@@ -1,59 +1,34 @@
 require File.dirname(__FILE__) + '/../spec_helper'
 
-class TestRolesController < ActionController::Base
-  rbac_roles_controller :operation_providers => ['providers']
-  around_filter :rbac_as
-  def rbac_as
-    Rbac.as(params[:sudo] ? SuperUser.new : nil){yield}
-  rescue Rbac::Operation::AuthorizationError
-    render(:nothing => true, :layout => false, :status => 401)
-  end
-end
-ActionController::Routing::Routes.draw do |map|
-  map.connect 'test/:action/:id', :controller => 'test_roles'
-end
-
-describe TestRolesController, :type => :controller do
-  before :all do
-    class Role < ActiveRecord::Base
-      stub!(:columns).and_return([])
-      include Rbac::Role
-    end
+describe Rbac::RolesController, :type => :controller do
+  def new_role atts = {}
+    Role.new({:name => 'name'}.merge(atts))
   end
 
-  it "should have a operations providers attribute" do
-    TestRolesController.operation_providers.should == ['providers']
+  it "should have an automatically loaded operations providers attribute" do
+    class Op; end
+    Rbac::RolesController.operation_providers.should_not include(Op)
+    class Op; include Rbac::Operation; end
+    Rbac::RolesController.operation_providers.should include(Op)
   end
 
-  describe "a custom finder can be specified", :shared => true do
-    it "should allow a custom find method to be used" do
-      begin
-        TestRolesController.find_one_with = :find_by_name
-        Role.should_receive(:find_by_name).and_return stub("Role", :null_object => true)
-        do_action
-      # teardown
-      ensure
-        TestRolesController.find_one_with = :find
-      end
-    end
-  end
 
   describe "index" do
     describe "with out will_paginate installed" do
       before :each do
-        @roles = [mock_model(Role)] * 2
+        @roles = [new_role] * 2
       end
       it "should fall back to find if paginate fails" do
-        Role.stub!(:paginate).and_raise NoMethodError
-        Role.should_receive(:find).and_return @roles
+        ::Role.stub!(:paginate).and_raise NoMethodError
+        ::Role.should_receive(:find).and_return @roles
         get :index
         assigns(:roles).should be(@roles)
       end
     end
     describe "with will_paginate installed" do
       before :each do
-        @roles = [mock_model(Role)] * 2
-        Role.stub!(:paginate).and_return @roles
+        @roles = [new_role] * 2
+        ::Role.stub!(:paginate).and_return @roles
       end
 
       def do_get
@@ -75,11 +50,10 @@ describe TestRolesController, :type => :controller do
 
   describe "show" do
     before :each do
-      @role = mock_model Role
-      Role.stub!(:find).with('name').and_return @role
+      @role = new_role
+      Role.stub(:find_by_name!).and_return @role
     end
 
-    it_should_behave_like "a custom finder can be specified"
 
     def do_get(params = {})
       get :show, {:id => "name"}.merge(params)
@@ -100,8 +74,8 @@ describe TestRolesController, :type => :controller do
 
   describe "edit" do
     before :each do
-      @role = mock_model Role
-      Role.stub!(:find).with('name').and_return @role
+      @role = new_role
+      Role.stub(:find_by_name!).and_return @role
     end
 
     def do_get(params = {})
@@ -109,7 +83,6 @@ describe TestRolesController, :type => :controller do
     end
     alias_method :do_action, :do_get
 
-    it_should_behave_like "a custom finder can be specified"
 
     it "should assign role" do
       do_get
@@ -129,8 +102,8 @@ describe TestRolesController, :type => :controller do
 
   describe "new" do
     before :each do
-      @role = mock_model Role
-      Role.stub!(:new).and_return @role
+      @role = new_role
+      Role.stub(:new).and_return @role
     end
 
     def do_get(params = {})
@@ -157,11 +130,10 @@ describe TestRolesController, :type => :controller do
 
   describe "update" do
     before :each do
-      @role = mock_model Role, :to_param => 'name'
-      Role.stub!(:find).with('name').and_return @role
+      @role = new_role
+      Role.stub(:find_by_name!).and_return @role
     end
 
-    it_should_behave_like "a custom finder can be specified"
 
     def do_put(params = {})
       put :update, {:id => 'name', :role => "role_attributes"}.merge(params)
@@ -176,7 +148,7 @@ describe TestRolesController, :type => :controller do
 
       it "should redirect edit" do
         do_put
-        response.should redirect_to(:action => 'edit')
+        response.should redirect_to(:action => 'show')
       end
     end
 
@@ -200,8 +172,8 @@ describe TestRolesController, :type => :controller do
 
   describe "create" do
     before :each do
-      @role = mock_model Role, :to_param => 'name'
-      Role.stub!(:new).and_return @role
+      @role = new_role
+      Role.stub(:new).and_return @role
     end
 
     def do_post(params = {})
@@ -217,7 +189,7 @@ describe TestRolesController, :type => :controller do
 
       it "should redirect edit" do
         do_post
-        response.should redirect_to(admin_role_url(@role))
+        response.should redirect_to(role_url(@role))
       end
     end
 
@@ -241,8 +213,8 @@ describe TestRolesController, :type => :controller do
 
   describe "destroy" do
     before :each do
-      @role = mock_model Role, :to_param => 'name'
-      Role.stub!(:find).with('name').and_return @role
+      @role = new_role
+      Role.stub(:find_by_name!).and_return @role
     end
 
     def do_delete
@@ -250,7 +222,6 @@ describe TestRolesController, :type => :controller do
     end
     alias_method :do_action, :do_delete
 
-    it_should_behave_like "a custom finder can be specified"
 
     it "should destroy the record" do
       @role.should_receive(:destroy)
@@ -260,7 +231,7 @@ describe TestRolesController, :type => :controller do
     it "should redirect to index" do
       @role.stub!(:destroy)
       do_delete
-      response.should redirect_to(admin_roles_path)
+      response.should redirect_to(roles_path)
     end
   end
 end

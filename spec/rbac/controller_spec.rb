@@ -42,7 +42,7 @@ describe TestController, :type => :controller do
     describe "actions with model-level restrictions" do
       before :each do
         class TestController
-          def action; TestModel.find :first; end
+          def action; TestModel.find :first; render :text => 'reponse'; end
         end
       end
 
@@ -58,7 +58,7 @@ describe TestController, :type => :controller do
       before :each do
         class TestController
           include Rbac::Operation
-          def action; end
+          def action; render :text => 'reponse'; end
 
           define_rbac_rule :false, "this rule is always false" do
             false
