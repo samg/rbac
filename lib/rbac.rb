@@ -26,14 +26,14 @@ module Rbac
   end
 
   module ActionController
-    def rbac_roles_controller options = {}
-      raise ArgumentError, "You must define an array of operations providers with options[:operation_providers]" unless
-        options[:operation_providers]
+    #def rbac_roles_controller options = {}
+    #  raise ArgumentError, "You must define an array of operations providers with options[:operation_providers]" unless
+    #    options[:operation_providers]
 
-      include Rbac::RolesController
-      self.operation_providers = options[:operation_providers]
-      self.find_one_with = options[:find_one_with] if options[:find_one_with]
-    end
+    #  include Rbac::RolesController
+    #  self.operation_providers = options[:operation_providers]
+    #  self.find_one_with = options[:find_one_with] if options[:find_one_with]
+    #end
   end
 end
 ActionController::Base.send :extend, Rbac::ActionController

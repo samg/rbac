@@ -1,0 +1,25 @@
+<h1><%= h @role.identifier.humanize %></h1>
+<ol>
+  <li><%= link_to "List", roles_path %></li>
+  <li><%= link_to "Manage Permissions", edit_role_path(@role) %></li>
+</ol>
+<h2>Permissions:</h2>
+<%- if @role.permissions.empty? %>
+  <p> No permissions are assigned to this role </p>
+<%- else %>
+  <ul>
+    <%- @role.permissions.each do |perm| %>
+      <li><%= permission_description perm.identifier %></li>
+    <%- end %>
+  </ul>
+<%- end %>
+<h2>Users:</h2>
+<%- if @role.users.empty? %>
+  <p>No users are assigned to this role.</p>
+<%- else %>
+  <ul>
+    <%- @role.users.each do |user| %>
+      <li><%= user.email %></li>
+    <%- end %>
+  </ul>
+<%- end %>

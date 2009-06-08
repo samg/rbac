@@ -1,0 +1,13 @@
+%h1.header_with_actions= @user.name
+%h3.actions
+  = link_to "List", admin_users_path
+  = link_to "Edit", edit_admin_user_path(@user)
+%p= link_to @user.email, "mailto:" + @user.email
+%h2 Roles:
+- if @user.roles.empty?
+  %p No assigned roles
+- else
+  %ul.list
+    - @user.roles.each do |role|
+      %li= link_to role.identifier, admin_role_path(role)
+

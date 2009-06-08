@@ -1,0 +1,15 @@
+/spec/rails_root/log/*
+/spec/rails_root/tmp/**/*
+/spec/rails_root/db/**/*
+/spec/rails_root/db/*
+/tags
+/coverage
+# ignore editor droppings
+\#*\#
+.#*
+*~
+*.swp
+
+#ignore Mac OS X droppings
+.DS_Store
+

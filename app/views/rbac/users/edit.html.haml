@@ -1,0 +1,15 @@
+= error_messages_for :user
+%h1.header_with_actions= @user.new_record? ? "New User" : @user.name
+%h3.actions
+  = link_to "List", admin_users_path
+  = link_to "Summary", admin_user_path(@user) unless @user.new_record?
+  = link_to("Delete", {:action => :destroy, :id => @user}, :confirm => "Are you sure?", :method => :delete)
+- form_for @user, :url => user_form_url(@user) do |f|
+  %div
+    %p= @user.email
+  %h2 Assignable Roles:
+  %dl.list
+    - @roles.each do |role|
+      %dd= role_field role
+    = hidden_field 'user[roles]', '_update', :value => 0
+  = f.submit

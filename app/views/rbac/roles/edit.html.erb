@@ -1,0 +1,31 @@
+<%= error_messages_for :role %>
+<%- form_for @role, :url => role_form_url(@role) do |f| %>
+  <p><label>Role Name:</label>
+  <%= f.text_field :name %>
+  </p>
+  <ul>
+    <li><%= link_to "List", roles_path %></li>
+    <%- unless @role.new_record? %>
+      <li><%= link_to "Summary", role_path(@role)%></li>
+    <%- end %>
+    <%- unless @role.new_record? %>
+      <li><%= link_to "Destroy", role_path(@role), :method => :delete, :confirm => "Are you sure you want to destroy this?" %></li>
+    <%- end %>
+  </ul>
+  <h2>Assignable Permissions:</h2>
+  <%- (@operation_providers || [] ).dup.unshift('*').each do |provider|%>
+    <h2><%= provider_label provider %></h2>
+    <dl>
+      <%- operations_for(provider).unshift('*').each do |operation|%>
+        <dt><%= operation_label(operation) %></dt>
+        <dd><%= permission_field provider, operation %></dd>
+        <%- rbac_rules_for(provider).each do |rule| %>
+          <dd><%= permission_field provider, operation, rule %></dd>
+          <dd><%= permission_field provider, operation, rule, :negate => true %></dd>
+        <%- end %>
+      <%- end %>
+    </dl>
+  <%- end %>
+  <%= hidden_field 'role[permissions]', '_update', :value => 0 %>
+  <%= f.submit %>
+<%- end %>
