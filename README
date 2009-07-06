@@ -1,27 +1,89 @@
 Rbac
 ====
 
-This is a simple library for creating and managing an RBAC permissions model in
-Rails.
+This is a library for creating and managing an RBAC permissions model in Rails.
+It implements a Role Based Access Control Security
+(http://en.wikipedia.org/wiki/Role-based_access_control) and allows you to add
+security checks to any Ruby object.  It provides a framework for implementing
+an arbitrary security policy which operates at the controller and/or model
+level, and is ideal for systems that require complex security policies or deep
+security.  It also contains a web-based admin interface for managing the
+permissions policy.
+
+Rbac works by providing standard interfaces for Subjects (e.g. Users),
+Operations (e.g. Protected controllers or models), and Roles. Subjects are
+permitted to perform Operations when their Roles provide adequate permissions.
+
+In addition to the standard RBAC security model, this library supports the
+creation and enforcement of access control rules.  These allow you to specify a
+condition (in ruby code) which will be evaluated to determine if the Subject is
+permitted to perform the requested action.
 
 Setup
 =====
 
- script/plugin install ssh://slice11.beezwax.net/var/repos/rbac.git
+script/plugin install git://github.com/beezwax/rbac.git
 
-if you want to use the spec helper, you can link or copy it to your spec
-directory.
+How it works
+====
 
- cd spec
- ln -s ../vendor/plugins/rbac/spec/rbac_spec_helper.rb
- echo "require File.dirname(__FILE__) + '/rbac_spec_helper'" >> spec_helper.rb
+On a theoretical level RBAC requires four types of enities in order to function.
 
-Usage
+Operation Providers: Operation providers (often referred to a operations in this
+library) are objects that can be acted upon, if adequate permission is provided
+by the acting subject.  In a typical application these would correspond to
+controller or model classes.  Each operation provider defines a list of
+operations which should be protected by the security system.  For an
+ActiveRecord model these are automatically defined as create, read, update, and
+delete, although these can be overridden.  Each operation will check that the
+subject performing the action has adequate permission before allowing the
+action to proceed.  If the subject is not permitted to perform the action an
+Rbac error is raised, and the failure is logged.
+
+Subjects: A subject attempts to perform an operation.  For example a User
+model would typically be used to represent the users of an application, who
+attempt to perform various actions within the application.
+
+Roles: Subjects are granted an arbitrary number of roles.  This is frequently
+implemented as a one-to-many database relationship, although Rbac is agnostic
+as to how the relationship is tracked.  Rbac does expect a Subject to respond
+to a #roles instance method which returns an array of roles assigned to the
+Subject. Roles should response to a #permissions method returning an array of
+permission objects.
+
+Permissions: Roles are assigned many permissions.  Rbac expects permissions to
+respond to an #identifier method which returns a string, identifying what
+operations the permission allows.  The identifier consists of 3 parts seperated
+by a dot (.).  For example an identifier could look like
+"active_record/base.update.active?".  The first section consists of an
+underscored version of the class name of the Operation Provider the permission
+applies to.  Rbac understands inheritance so this permission would apply to any
+class descending from ActiveRecord::Base.  The second section of the identifier
+describes the action the permission applies to, in this case a database update.
+The third section describes any contextual rules that should be evaluated before
+allowing the operation to proceed.  These rules are defined within the Operation
+Provider using this syntax
+
+  class MyModel < ActiveRecord::Base
+    include Rbac::Operation
+    define_rbac_rule :active?, 'the model is in an active state' do
+      self.status == 'active'
+    end
+  end
+
+The first argument of Rbac::Operation.define_rbac_rule is the key used in the
+permission identifier to trigger the rule.  The second is a human readable
+description that is pulled into the administrative interface.  The block is
+evaluated in the context of the operation providing object (i.e. self refers to
+the object instance being acted upon.)  If it evaluates to nil or false the
+operation is halted.  Otherwise it is allowed to proceed.
+
+Wildcards are allowed in any part of the permission identifier.  Therefore
+'*.*.*' provides super-user access, allowing the Subject to perform any
+protected action within the system.
+
+Basic Usage
 =====
-
-Rbac works by providing standard interfaces for Subjects, Operations, and
-Roles. Subjects are permitted to perform Operations when their Roles provide
-adequate permissions.
 
 A simple implementation of Rbac might look like this:
 
@@ -68,5 +130,3 @@ super user rights.
 
 
 
---------------------------------------------------------------------------------
-Copyright (c) 2008 Beezwax Datatools, Inc., released under the MIT license
